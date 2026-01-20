@@ -459,8 +459,8 @@ impl fmt::Display for Lambda {
 fn main() {
     let t = Lambda::new("%x|y.x"); //true
     let f = Lambda::new("%x|y.y"); //false
-    let a = Lambda::newf("%x|y.(x y) &{}", vec![f.clone()]); //and
-    let res = Lambda::newf("({} &{}) &{}", vec![a.clone(), t.clone(), t]); //and(true, true)
-    println!("{}", a);
+    let a = Lambda::newf("%x|y.(x y) &{}", vec![f]); //and
+    let res = Lambda::newf("({} &{}) &{}", vec![a, t.clone(), t]); //and(true, true)
+    println!("{}", res.evaluate());
 }
 //outputs (%x|y.x) which is equivalent to true
