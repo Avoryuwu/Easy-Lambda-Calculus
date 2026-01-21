@@ -5,4 +5,5 @@ repository = "https://github.com/Avoryuwu/Rust-Lambda-Calculus"
 edition = "2024"
 
 [lib]
+path = "./src/main.rs"
 crate-type = ["lib"]
