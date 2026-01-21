@@ -1,4 +1,3 @@
-use dyn_fmt::AsStrFormatExt;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -13,6 +12,7 @@ pub enum Lambda {
     StVec(Vec<String>),
     Brack(Vec<Lambda>),
     TFunc(Vec<String>),
+    Container(Box<Lambda>),
     AttPl(()),
 }
 
@@ -27,14 +27,21 @@ impl Lambda {
             .iter()
             .map(|x| x.to_string())
             .collect::<Vec<String>>();
-        let bracks = Self::find_bracks(chars.clone(), false);
-        let tokens = Self::parse_bracks(bracks.clone());
+        let bracks = Self::find_bracks(chars, false);
+        let tokens = Self::parse_bracks(bracks, &vec![], 0).0;
         Self::parse_tokens(tokens)
     }
     //new lambda from formatted string
     pub fn newf(s: &str, f: Vec<Lambda>) -> Lambda {
-        let a = f.iter().map(|x| format!("{}", x)).collect::<Vec<String>>();
-        Self::new(&s.format(&a))
+        let chars = s
+            .chars()
+            .collect::<Vec<char>>()
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>();
+        let bracks = Self::find_bracks(chars, false);
+        let tokens = Self::parse_bracks(bracks, &f, 0).0;
+        Self::parse_tokens(tokens)
     }
     //order characters by brackets
     fn find_bracks(chars: Vec<String>, alph: bool) -> Lambda {
@@ -99,13 +106,14 @@ impl Lambda {
         Self::Brack(bracks)
     }
     //parse the brackets and characters into brackets and tokens
-    fn parse_bracks(brs: Lambda) -> Lambda {
+    fn parse_bracks(brs: Lambda, vec: &Vec<Lambda>, mut vec_num: usize) -> (Lambda, usize) {
         if let Self::Brack(br) = brs {
             let mut parse_vec: Vec<Lambda> = Vec::new();
             for b in br {
                 match &b {
                     Self::Brack(_) => {
-                        let t = Self::parse_bracks(b);
+                        let t: Lambda;
+                        (t, vec_num) = Self::parse_bracks(b, vec, vec_num);
                         if let Self::Brack(v) = &t
                             && v.len() == 1
                         {
@@ -115,21 +123,24 @@ impl Lambda {
                         }
                     }
                     Self::StVec(v) => {
-                        let t = Self::parse_stvec(v.clone());
+                        let t: Vec<Lambda>;
+                        (t, vec_num) = Self::parse_stvec(v.clone(), vec, vec_num);
                         parse_vec.extend_from_slice(&t[..]);
                     }
                     Self::AlphaMark(l) => {
-                        parse_vec.push(Self::AlphaMark(Box::new(Self::parse_bracks(*l.clone()))))
+                        let temp: Lambda;
+                        (temp, vec_num) = Self::parse_bracks(*l.clone(), vec, vec_num);
+                        parse_vec.push(Self::AlphaMark(Box::new(temp)));
                     }
                     _ => panic!("Syntax error"),
                 }
             }
-            return Self::Brack(parse_vec);
+            return (Self::Brack(parse_vec), vec_num);
         }
         panic!("Syntax error")
     }
     //turn the characters into tokens
-    fn parse_stvec(strs: Vec<String>) -> Vec<Lambda> {
+    fn parse_stvec(strs: Vec<String>, vec: &[Lambda], mut vec_num: usize) -> (Vec<Lambda>, usize) {
         let mut token_vec: Vec<Lambda> = Vec::new();
         let mut pass_num = 0;
         for i in 0..strs.len() {
@@ -137,6 +148,10 @@ impl Lambda {
                 pass_num -= 1;
             } else if strs[i] == "%" {
                 (token_vec, pass_num) = Self::parse_func_char(strs.clone(), token_vec, i);
+            } else if strs[i] == "{" && strs[i + 1] == "}" {
+                token_vec.push(Self::Container(Box::new(vec[vec_num].clone())));
+                vec_num += 1;
+                pass_num += 1;
             } else {
                 for j in i..strs.len() {
                     match strs[j].as_str() {
@@ -144,6 +159,8 @@ impl Lambda {
                             token_vec.push(Self::AttPl(()));
                         }
                         "&" => {}
+                        "{" => {}
+                        "}" => {}
                         _ => {
                             (token_vec, pass_num) = Self::find_vars(&strs, token_vec, j);
                         }
@@ -152,7 +169,7 @@ impl Lambda {
                 pass_num += 1;
             }
         }
-        token_vec
+        (token_vec, vec_num)
     }
     //find variable tokens
     fn find_vars(strs: &[String], mut token_vec: Vec<Lambda>, i: usize) -> (Vec<Lambda>, i32) {
@@ -218,6 +235,7 @@ impl Lambda {
             Self::AlphaMark(l) => Self::AlphaMark(Box::new(Self::parse_tokens(*l))),
             Self::Reducible((a, b)) => Self::parse_tokens(*a).attach(Self::parse_tokens(*b)),
             Self::Func((a, b)) => Self::Func((a, Box::new(Self::parse_tokens(*b)))),
+            Self::Container(l) => *l,
             _ => panic!("syntax error"),
         }
     }
