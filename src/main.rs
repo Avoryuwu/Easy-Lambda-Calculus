@@ -65,12 +65,12 @@ impl Lambda {
         if starts.len() != ends.len() {
             panic!("Unclosed bracket");
         }
+        //split the string into bracket tokens and mark them for alpha reduction if needed
         if starts.is_empty() && alph {
             return Self::AlphaMark(Box::new(Self::Brack(vec![Self::StVec(chars)])));
         } else if starts.is_empty() {
             return Self::Brack(vec![Self::StVec(chars)]);
         }
-        //split the string into bracket tokens
         let mut bracks: Vec<Lambda> = Vec::new();
         if !chars[..starts[0]].to_vec().is_empty() {
             bracks.push(Self::StVec(chars[..starts[0]].to_vec()));
@@ -93,8 +93,6 @@ impl Lambda {
                 bracks.push(Self::StVec(chars[ends[i] + 1..].to_vec()));
             }
         }
-
-        //mark brackets for alpha reduction
         if alph {
             return Self::AlphaMark(Box::new(Self::Brack(bracks)));
         }
@@ -156,6 +154,7 @@ impl Lambda {
         }
         token_vec
     }
+    //find variable tokens
     fn find_vars(strs: &[String], mut token_vec: Vec<Lambda>, i: usize) -> (Vec<Lambda>, i32) {
         let mut pass_num = 0;
         if !Self::ALPH.contains(&strs[i]) {
@@ -178,6 +177,7 @@ impl Lambda {
         }
         (token_vec, pass_num)
     }
+    //parse the function syntax
     fn parse_func_char(
         strs: Vec<String>,
         mut token_vec: Vec<Lambda>,
@@ -329,7 +329,7 @@ impl Lambda {
         self
     }
     //function to assign a vector of hashmaps to a lambda
-    pub fn set_map(
+    fn set_map(
         l: Lambda,
         mut m: Vec<HashMap<String, usize>>,
         mut i: usize,
@@ -366,7 +366,7 @@ impl Lambda {
         }
     }
     //function to get a lambda variable name from an integer
-    pub fn get_name(mut n: usize) -> String {
+    fn get_name(mut n: usize) -> String {
         let mut out = "".to_string();
         let chars = UnicodeSegmentation::graphemes(Self::ALPH, true);
         let num = chars.clone().count();
