@@ -32,7 +32,7 @@ impl Lambda {
     //Alphabet for variable naming
     const ALPH: &str = "xyzwabcdefghijklmnopqrstuv";
     //new lambda from formatted string
-    fn new(s: &str, f: Vec<Lambda>) -> Lambda {
+    pub fn new(s: &str, f: Vec<Lambda>) -> Lambda {
         let chars = s
             .chars()
             .collect::<Vec<char>>()
@@ -474,7 +474,7 @@ impl fmt::Display for Lambda {
 }
 
 //code to evaluate a(t, t)
-fn main() {
+pub fn main() {
     let t = lambda!("%x|y.x"); //true
     let f = lambda!("%x|y.y"); //false
     let a = lambda!("%x|y.(x y) &{}", f); //and
