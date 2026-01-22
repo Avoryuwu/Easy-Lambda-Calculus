@@ -37,6 +37,19 @@ impl Lambda {
             .chars()
             .collect::<Vec<char>>()
             .iter()
+            .map(|x| {
+                let mut a = x.to_string();
+                if a == "{" {
+                    a = "({".to_string();
+                } else if a == "}" {
+                    a = "})".to_string();
+                }
+                a.clone()
+            })
+            .collect::<String>()
+            .chars()
+            .collect::<Vec<char>>()
+            .iter()
             .map(|x| x.to_string())
             .collect::<Vec<String>>();
         let bracks = Self::find_bracks(chars, false);
@@ -60,7 +73,7 @@ impl Lambda {
                 (")", _) => count -= 1,
                 ("(", 0) => {
                     if i != 0 && chars[i - 1] == "&" {
-                        alphas.push(i)
+                        alphas.push(i);
                     }
                     starts.push(i);
                     count += 1;
@@ -260,6 +273,7 @@ impl Lambda {
             Self::Brack(_) => Self::parse_tokens(vec[0].clone()),
             Self::Reducible(_) => Self::parse_tokens(vec[0].clone()),
             Self::Variable(_) => vec[0].clone(),
+            Self::Container(_) => vec[0].clone(),
             _ => panic!("Syntax error"),
         }
     }
