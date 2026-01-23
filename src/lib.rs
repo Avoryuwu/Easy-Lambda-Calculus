@@ -274,6 +274,7 @@ impl Lambda {
             Self::Reducible(_) => Self::parse_tokens(vec[0].clone()),
             Self::Variable(_) => vec[0].clone(),
             Self::Container(_) => vec[0].clone(),
+            Self::AlphaMark(a) => Self::AlphaMark(Box::new(Self::parse_tokens(*a))),
             _ => panic!("Syntax error"),
         }
     }
@@ -291,21 +292,21 @@ impl Lambda {
         Self::parse_token_vec(tokens[1..tokens.len()].to_vec())
     }
     //make new function variant with a string and a Lambda
-    pub fn func(a: &str, b: Lambda) -> Lambda {
+    fn func(a: &str, b: Lambda) -> Lambda {
         Self::Func((Box::new(Self::var(a)), Box::new(b)))
     }
     //make new variable variant with a string
-    pub fn var(inp: &str) -> Lambda {
+    fn var(inp: &str) -> Lambda {
         Self::Variable(inp.to_string())
     }
     //make new reductible variant by attaching an input Lambda to a Lambda
-    pub fn attach(self, a: Lambda) -> Lambda {
+    fn attach(self, a: Lambda) -> Lambda {
         Self::Reducible((Box::new(self), Box::new(a)))
     }
     //mark a lambda for alpha reduction
-    pub fn alpha(self) -> Lambda {
+    /*fn alpha(self) -> Lambda {
         Self::AlphaMark(Box::new(self))
-    }
+    }*/
     //beta reduce a reducible
     pub fn reduce(self) -> Lambda {
         if let Self::Reducible((a, b)) = self.clone() {
