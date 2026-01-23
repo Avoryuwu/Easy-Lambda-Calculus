@@ -1,7 +1,46 @@
+//! Simple and easy to write lambda calculus
+//! # Example:
+//! ```rust
+//! use easy_lambda_calculus::*;
+//!
+//! //code to evaluate and(true, true)
+//!fn main() {
+//!   let t = lambda!("%x|y.x"); //true
+//!   let f = lambda!("%x|y.y"); //false
+//!   let a = lambda!("%x|y.(x y) &{}", f); //and
+//!   let res = lambda!("({} &{}) &{}", a, t.clone(), t); //and(true, true)
+//!   println!("{}", res.evaluate());
+//!}
+//! //outputs (%x|y.x) which is equivalent to true
+
 use std::collections::HashMap;
 use std::fmt;
 
-//macro for new lambda
+///Makes a new lambda from a string
+///
+///```rust
+///use easy_lambda_calculus::*;
+///
+///let l = lambda!("%x|y.y")
+///println!("{}", lambda!("%x|y.(x y) &{}", l));
+/// //outputs λx|y.(x y) &(λx|y.y)
+///```
+///
+///#### Syntax:
+///
+///%x.x to define function with input variable x and output defined after the dot.
+///
+///%x|y.y to define a function with multiple inputs (equivalent to %x.(%y.y) ), variables separated by a pipe | character.
+///
+///Variables can be multiple characters.
+///eg: %var.var or %true|false.true are also valid.
+///
+///(x y) to apply y into function x.
+///(x y z) is not valid as the reduction order is ambiguous, define it with ((x y) z) or (x (y z)), see Lambda.reduce() for reduction order.
+///
+///&(x) is used to mark section x for alpha reduction, so you can reuse variable names without any unintended interactions.
+///
+///{} is used to input a lambda variable into the lambda, uses the same syntax as the `format!()` macro, &{} is shorthand for &({}).
 #[macro_export]
 macro_rules! lambda {
     ($x:expr) => (
@@ -13,18 +52,27 @@ macro_rules! lambda {
 
 }
 
-//Lambda data type
+///Lambda data type
 #[derive(Debug, PartialEq, Clone)]
 pub enum Lambda {
+    ///Function
     Func((Box<Lambda>, Box<Lambda>)),
+    ///Variable
     Variable(String),
+    ///Marks a lambda being applied into a function
     Reducible((Box<Lambda>, Box<Lambda>)),
+    ///Marks a lambda for alpha reduction
     AlphaMark(Box<Lambda>),
-    //tokens
+
+    ///Vector of strings to be converted into a lambda
     StVec(Vec<String>),
+    ///Token for brackets
     Brack(Vec<Lambda>),
+    ///Token for shorthand functions
     TFunc(Vec<String>),
+    ///Token to contain a lambda inputted through formatting
     Container(Box<Lambda>),
+    ///Token to mark where to put reducibles
     AttPl(()),
 }
 
@@ -32,6 +80,7 @@ impl Lambda {
     //Alphabet for variable naming
     const ALPH: &str = "xyzwabcdefghijklmnopqrstuv";
     //new lambda from formatted string
+    #[doc(hidden)]
     pub fn new(s: &str, f: Vec<Lambda>) -> Lambda {
         let chars = s
             .chars()
@@ -303,11 +352,25 @@ impl Lambda {
     fn attach(self, a: Lambda) -> Lambda {
         Self::Reducible((Box::new(self), Box::new(a)))
     }
-    //mark a lambda for alpha reduction
-    /*fn alpha(self) -> Lambda {
-        Self::AlphaMark(Box::new(self))
-    }*/
-    //beta reduce a reducible
+
+    ///A single step of beta reduction
+    ///
+    ///```rust
+    ///use easy_lambda_calculus::*;
+    ///
+    ///println!("{}", lambda!("(%x.(x x)) (%y|z.z)").reduce());
+    /// //outputs (λy|z.z) (λy|z.z)
+    ///```
+    ///
+    ///#### Reduction order:
+    ///
+    ///Outer brackets are beta reduced first.
+    ///eg: ((λx.(x x)) ((λy.(y y)) (λz.z))) will reduce to (((λy.(y y)) (λz.z)) ((λy.(y y)) (λz.z))) and not (λx.(x x)) ((λz.z) (λz.z))
+    ///
+    ///If the left side is an application into a function rather then a function, it will be beta reduced first.
+    ///eg: (((λx.x) (λy.(y y))) (λz.z)) will reduce to ((λy.(y y)) (λz.z))
+    ///
+    ///For reduction with functions marked for alpha reduction, see Lambda.alpha_reduce().
     pub fn reduce(self) -> Lambda {
         if let Self::Reducible((a, b)) = self.clone() {
             //if reducible has a function reduce the function, else if it has a reducible, reduce the inside reducible
@@ -320,7 +383,28 @@ impl Lambda {
         }
         panic!("Cannot reduce");
     }
-    //alpha reduce a lambda
+
+    ///Alpha reduce any sections marked for alpha reduction
+    ///
+    ///```rust
+    ///use easy_lambda_calculus::*;
+    ///
+    ///println!("{}", lambda!("(%z.(z z)) &(%z.z)").alpha_reduce());
+    /// //outputs ((λx.(x x)) (λy.y))
+    ///```
+    ///
+    ///#### Alpha reduction properties:
+    ///
+    ///Alpha reduction will rename every variable based on when they show up in the lambda.
+    ///They are renamed with the naming scheme: x, y, z, w, a, b ... u, v, xx, xy...
+    ///
+    ///The renamed variables in any section marked for alpha reduction will be different from any other one.
+    ///
+    ///The alpha reduction function can also be used when there are no sections marked for alpha reduction, to rename the variables in the lambda based on the naming scheme.
+    ///
+    ///The sections marked for alpha reduction cannot be reduced, however can be reduced into other functions
+    ///Note that reducing them into other functions does not remove that they are marked for alpha reduction, and can cause unwanted effects.
+    ///For example if multiple variables are substituted with the section marked for alpha reduction, when alpha reduced, every copy will have different variable names.
     pub fn alpha_reduce(self) -> Lambda {
         let (m, _, _) = Self::set_map(self.clone(), vec![HashMap::new()], 0, 0, 0);
         let (out, _) = Self::recursive_alpha(self, m, 0, 0);
@@ -350,7 +434,21 @@ impl Lambda {
             _ => panic!("Cannot reduce {:?}", b),
         }
     }
-    //function to evaluate lambda
+    ///Evaluate a lambda
+    ///
+    ///
+    ///```rust
+    ///use easy_lambda_calculus::*;
+    ///
+    ///println!("{}", lambda!("(%x.&(%x.&(%x.x))) &(%x.x)").evaluate());
+    /// //outputs (λx|y.y)
+    ///```
+    ///
+    ///#### Evaluation method:
+    ///
+    ///Evaluation will first alpha reduce the lambda.
+    ///It will then automatically beta reduce the lambda until it cannot be reduced anymore.
+    ///Lastly it will alpha reduce the lambda again, to output it with predictable names.
     pub fn evaluate(self) -> Lambda {
         self.alpha_reduce().recursive_evaluate().alpha_reduce()
     }

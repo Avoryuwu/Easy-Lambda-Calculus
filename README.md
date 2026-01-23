@@ -30,7 +30,7 @@ eg: %var.var or %true|false.true are also valid.
 (x y) to apply y into function x.
 (x y z) is not valid as the reduction order is ambiguous, define it with ((x y) z) or (x (y z)), see Lambda.reduce() for reduction order.
 
-&(x) is used to mark function x for alpha reduction, so you can reuse variable names without any unintended interactions.
+&(x) is used to mark section x for alpha reduction, so you can reuse variable names without any unintended interactions.
 
 {} is used to input a lambda variable into the lambda, uses the same syntax as the `format!()` macro, &{} is shorthand for &({}).
 
@@ -50,16 +50,16 @@ fn main() {
 #### Reduction order:
 
 Outer brackets are reduced first.
-eg: ((λx.(x x)) ((λy.(y y)) (λz.z))) will reduce to (((λy.(y y)) (λz.z)) ((λy.(y y)) (λz.z))) and not (λx.(x x)) ((λz.z) (λz.z))
+eg: ((λx.(x x)) ((λy.(y y)) (λz.z))) will beta reduce to (((λy.(y y)) (λz.z)) ((λy.(y y)) (λz.z))) and not (λx.(x x)) ((λz.z) (λz.z))
 
-If the left side is an application into a function rather then a function, it will be reduced first.
+If the left side is an application into a function rather then a function, it will be beta reduced first.
 eg: (((λx.x) (λy.(y y))) (λz.z)) will reduce to ((λy.(y y)) (λz.z))
 
-For reduction with functions marked for alpha reduction, see Lambda.alpha_reduce().
+For reduction with sections marked for alpha reduction, see Lambda.alpha_reduce().
 
 ### Lambda.alpha_reduce():
 
-Alpha reduce any functions marked for alpha reduction
+Alpha reduce any sections marked for alpha reduction
 
 ```rust
 use easy_lambda_calculus::*;
@@ -72,18 +72,20 @@ fn main() {
 
 #### Alpha reduction properties:
 
-Alpha reduction will rename every variable based on when they show up in the function.
+Alpha reduction will rename every variable based on when they show up in the lambda.
 They are renamed with the naming scheme: x, y, z, w, a, b ... u, v, xx, xy...
 
-The renamed variables in any function marked for alpha reduction will be different from any other one.
+The renamed variables in any section marked for alpha reduction will be different from any other one.
 
-The alpha reduction function can also be used when there are no functions marked for alpha reduction, to rename the function based on the naming scheme.
+The alpha reduction function can also be used when there are no sections marked for alpha reduction, to rename the lambdas variables based on the naming scheme.
 
-The functions marked for alpha reduction cannot be reduced, however can be reduced into other functions
+The sections marked for alpha reduction cannot be reduced, however can be reduced into other functions
 Note that reducing them into other functions does not remove that they are marked for alpha reduction, and can cause unwanted effects.
-For example if multiple variables are replaced with the function marked for alpha reduction, when alpha reduced, every copy will have different variable names.
+For example if multiple variables are substituted with the section marked for alpha reduction, when alpha reduced, every copy will have different variable names.
 
 ### Lambda.evaluate():
+
+Evaluate a lambda
 
 ```rust
 use easy_lambda_calculus::*;
@@ -96,6 +98,6 @@ fn main() {
 
 #### Evaluation method:
 
-Evaluation will first alpha reduce the function.
-It will then automatically reduce the function until it cannot be reduced anymore.
-Lastly it will alpha reduce the function again, to output it with predictable names.
+Evaluation will first alpha reduce the lambda.
+It will then automatically beta reduce the lambda until it cannot be reduced anymore.
+Lastly it will alpha reduce the lambda again, to output it with predictable names.
