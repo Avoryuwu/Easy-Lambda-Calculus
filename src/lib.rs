@@ -15,7 +15,6 @@
 
 use std::collections::HashMap;
 use std::fmt;
-use std::mem;
 
 ///Makes a new lambda from a string
 ///
@@ -379,10 +378,18 @@ impl Lambda {
                 return Self::recursive_reduce(*d.clone(), *c.clone(), *b);
             } else if let Self::Reducible(_) = &*a {
                 return a.reduce().attach(*b);
+            } else if let Self::Reducible(_) = *b {
+                return a.attach(b.reduce());
+            } else if let Self::Variable(_) = &*a {
+                return a.attach(*b);
             }
             panic!("Cannot reduce");
         }
-        panic!("Cannot reduce");
+        if let Self::Func((a, b)) = self.clone() {
+            return Self::Func((a, Box::new(b.reduce())));
+        }
+        self
+        //panic!("Cannot reduce");
     }
 
     ///Alpha reduce any sections marked for alpha reduction
@@ -455,10 +462,19 @@ impl Lambda {
     }
     //function to recursively reduce every reducible
     fn recursive_evaluate(self) -> Lambda {
-        if let Self::Reducible(_) = self {
-            return self.reduce().recursive_evaluate();
+        let mut l = self.clone();
+        loop {
+            let ll = l.clone();
+            if let Self::Reducible(_) = &self {
+                l = l.reduce()
+            } else if let Self::Func(_) = &self {
+                l = l.reduce();
+            }
+            if l == ll {
+                break;
+            }
         }
-        self
+        l
     }
     //function to assign a vector of hashmaps to a lambda
     fn set_map(
@@ -578,13 +594,24 @@ impl Lambda {
             _ => panic!("Cannot display"),
         }
     }
-    pub fn from_i32(n: i32) -> Lambda {
-        let mut l = Self::var("x").attach(Self::var("y"));
-        for i in 0..n {
-            l = Self::var("x").attach(l);
-            println!("{}", i);
+    ///Lambda from u16 with church encoding
+    pub fn from_u16(n: u16) -> Lambda {
+        let mut l = Self::var("x");
+        if n != 0 {
+            l = l.attach(Self::var("y"));
         }
-        l
+        for _ in 0..n - 1 {
+            l = Self::var("x").attach(l);
+        }
+        Self::func("x", Self::func("y", l))
+    }
+    ///Add numbers together with church encoding
+    pub fn add() -> Lambda {
+        lambda!("%x|y|z|w.(y z) ((x z) w)").alpha_reduce()
+    }
+    ///Add one to numbers with church encoding
+    pub fn succ() -> Lambda {
+        lambda!("%a|f|x.(a f) (f x)").alpha_reduce()
     }
 }
 
