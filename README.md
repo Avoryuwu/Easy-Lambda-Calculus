@@ -108,7 +108,7 @@ Makes a lambda from an integer using church encoding ( (%x|y.(x y)) = 1, (%x|y.x
 
 ### Lambda.as_u16():
 
-Converts a lambda into an integer if it is valid church encoding, returns Option\<u16> if it is a integer, None if it is not.
+Converts a lambda into an integer if it is valid church encoding, returns Option\<u16> if it is an integer, return None if it is not.
 
 ### Lambda::succ():
 
