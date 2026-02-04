@@ -15,7 +15,7 @@ fn main() {
   let l = lambda!("%x|y.y")
   println!("{}", lambda!("%x|y.(x y) &{}", l));
 }
-//outputs λx|y.(x y) &(λx|y.y)
+//outputs (%x|y.(x y) &(%x|y.y))
 ```
 
 #### Syntax:
@@ -44,7 +44,7 @@ use easy_lambda_calculus::*;
 fn main() {
   println!("{}", lambda!("(%x.(x x)) (%y|z.z)").reduce());
 }
-//outputs (λy|z.z) (λy|z.z)
+//outputs ((%y|z.z) (%y|z.z))
 ```
 
 #### Reduction order:
@@ -67,7 +67,7 @@ use easy_lambda_calculus::*;
 fn main() {
   println!("{}", lambda!("(%z.(z z)) &(%z.z)").alpha_reduce());
 }
-//outputs ((λx.(x x)) (λy.y))
+//outputs ((%x.(x x)) (%y.y))
 ```
 
 #### Alpha reduction properties:
@@ -93,7 +93,7 @@ use easy_lambda_calculus::*;
 fn main() {
   println!("{}", lambda!("(%x.&(%x.&(%x.x))) &(%x.x)").evaluate());
 }
-//outputs (λx|y.y)
+//outputs (%x|y.y)
 ```
 
 #### Evaluation method:
@@ -101,3 +101,19 @@ fn main() {
 Evaluation will first alpha reduce the lambda.
 It will then automatically beta reduce the lambda until it cannot be reduced anymore.
 Lastly it will alpha reduce the lambda again, to output it with predictable names.
+
+### Lambda::from_u16(u16):
+
+Makes a lambda from an integer using church encoding ( (%x|y.(x y)) = 1, (%x|y.x (x y)) = 2, (%x|y.x (x (x y))) = 3...).
+
+### Lambda.as_u16():
+
+Converts a lambda into an integer if it is valid church encoding, returns Option<u16> if it is a integer, None if it is not.
+
+### Lambda::succ():
+
+Returns a lambda that adds one to church encoded integers where (succ integer) reduces to integer + 1.
+
+### Lambda::add():
+
+Returns a lambda that adds two church encoded integers together where ((add a) b) reduces to a + b.

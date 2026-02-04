@@ -607,6 +607,7 @@ impl Lambda {
         }
         Self::func("x", Self::func("y", l))
     }
+    ///u16 from Lambda with church encoding
     pub fn as_u16(self: Lambda) -> Option<u16> {
         let mut l = self;
         if let Lambda::Func((a, b)) = l {
@@ -633,13 +634,13 @@ impl Lambda {
         }
         None
     }
-    ///Add numbers together with church encoding
-    pub fn add() -> Lambda {
-        lambda!("%x|y|z|w.(y z) ((x z) w)").alpha_reduce()
-    }
     ///Add one to numbers with church encoding
     pub fn succ() -> Lambda {
         lambda!("%a|f|x.(a f) (f x)").alpha_reduce()
+    }
+    ///Add numbers together with church encoding
+    pub fn add() -> Lambda {
+        lambda!("%x|y|z|w.(y z) ((x z) w)").alpha_reduce()
     }
 }
 
