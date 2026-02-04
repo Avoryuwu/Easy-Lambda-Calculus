@@ -378,6 +378,8 @@ impl Lambda {
                 return Self::recursive_reduce(*d.clone(), *c.clone(), *b);
             } else if let Self::Reducible(_) = &*a {
                 return a.reduce().attach(*b);
+            } else if let Self::Func((c, d)) = &*b {
+                return Self::Func((c.clone(), Box::new(d.clone().reduce())));
             } else if let Self::Reducible(_) = *b {
                 return a.attach(b.reduce());
             } else if let Self::Variable(_) = &*a {
@@ -599,11 +601,37 @@ impl Lambda {
         let mut l = Self::var("x");
         if n != 0 {
             l = l.attach(Self::var("y"));
-        }
-        for _ in 0..n - 1 {
-            l = Self::var("x").attach(l);
+            for _ in 0..n - 1 {
+                l = Self::var("x").attach(l);
+            }
         }
         Self::func("x", Self::func("y", l))
+    }
+    pub fn as_u16(self: Lambda) -> Option<u16> {
+        let mut l = self;
+        if let Lambda::Func((a, b)) = l {
+            if let Lambda::Func((c, d)) = *b {
+                l = *d;
+                let mut n = 0;
+                loop {
+                    if let Lambda::Reducible((e, f)) = l {
+                        if e != a {
+                            return None;
+                        }
+                        n += 1;
+                        if f == c {
+                            return Some(n);
+                        }
+                        l = *f;
+                    } else {
+                        return None;
+                    }
+                }
+            } else {
+                return None;
+            }
+        }
+        None
     }
     ///Add numbers together with church encoding
     pub fn add() -> Lambda {
